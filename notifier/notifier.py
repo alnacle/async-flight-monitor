@@ -1,18 +1,25 @@
 import os
 import ast
+import datetime
 import twilio.rest as twilio
 import paho.mqtt.client as mqtt
 
 def build_message(user, departure, arrival):
-    return """Dear {}, your flight from {} to {} has changed:
+
+    fmt = '%Y-%m-%d %H:%M'
+
+    departure_time = datetime.datetime.strptime(departure['scheduledDate'], fmt).strftime('%H:%M')
+    arrival_time = datetime.datetime.strptime(arrival['scheduledDate'], fmt).strftime('%H:%M')
+
+    return """Dear {}, your flight from {} to {} has been updated:
         departure at {} terminal {} gate {}.
         arrival at {} terminal {} gate{}""".format(user['userName'],
                                                  departure['iataCode'],
                                                  arrival['iataCode'],
-                                                 departure['scheduledTime'],
+                                                 departure_time,
                                                  departure['terminal'],
                                                  departure['gate'],
-                                                 arrival['scheduledTime'],
+                                                 arrival_time,
                                                  arrival['terminal'],
                                                  arrival['gate'])
 

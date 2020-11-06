@@ -7,13 +7,8 @@ properties:
   scheduledDate:
     type: string
     format: date-time
-    description: scheduled date of the flight, local to the airport.
-    example: "2020-10-20"
-  scheduledTime:
-    type: string
-    format: date-time
-    description: scheduled time of the flight, local to the airport.
-    example: "19:15"
+    description: scheduled datetime of the flight, local to the airport.
+    example: "2020-10-20 19:15"
   gate:
     type: string
     description: departure gate
