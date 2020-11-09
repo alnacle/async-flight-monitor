@@ -11,17 +11,27 @@ def build_message(user, departure, arrival):
     departure_time = datetime.datetime.strptime(departure['scheduledDate'], fmt).strftime('%H:%M')
     arrival_time = datetime.datetime.strptime(arrival['scheduledDate'], fmt).strftime('%H:%M')
 
-    return """Dear {}, your flight from {} to {} has been updated:
-        departure at {} terminal {} gate {}.
-        arrival at {} terminal {} gate{}""".format(user['userName'],
-                                                 departure['iataCode'],
-                                                 arrival['iataCode'],
-                                                 departure_time,
-                                                 departure['terminal'],
-                                                 departure['gate'],
-                                                 arrival_time,
-                                                 arrival['terminal'],
-                                                 arrival['gate'])
+    msg  = "Dear {}, your flight from {} to {} has been updated: ".format(user['userName'],
+                                                                        departure['iataCode'],
+                                                                        arrival['iataCode'])
+    msg += "departure at {}".format(departure_time)
+
+    if departure['terminal']:
+        msg += " terminal {}".format(departure['terminal'])
+    if departure['gate']:
+        msg += " gate {}".format(departure['gate'])
+
+    msg += ". Arrival at {}".format(arrival_time)
+
+    if arrival['terminal']:
+        msg += " terminal {}".format(arrival['terminal'])
+    if arrival['gate']:
+        msg += " gate {}".format(arrival['gate'])
+
+
+    msg += ". Enjoy your flight!"
+
+    return msg
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe("flight/update")
@@ -32,7 +42,7 @@ def on_message(client, userdata, msg):
 
     account_sid = os.getenv('TWILIO_SID', None)
     auth_token = os.getenv('TWILIO_TOKEN', None)
-    twilio_phone = os.getenv('TWILIO_PHONE', None)
+    twilio_phone = os.getenv('TWILIO_NUMBER', None)
 
     if not account_sid or not auth_token or not twilio_phone:
         return

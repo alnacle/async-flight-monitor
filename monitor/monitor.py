@@ -8,6 +8,8 @@ import paho.mqtt.client as mqtt
 
 flights = {}
 
+payload_fmt = '%Y-%m-%d %H:%M'
+
 def on_connect(client, userdata, flags, rc):
     client.subscribe("flight/queue")
 
@@ -46,8 +48,6 @@ def on_message(client, userdata, msg):
 
 def update_flight(client, flight):
 
-    print("Updating flight info from REST/API")
-
     (code, number, date, user, phone) = flight.split('#')
     response = client.schedule.flights.get(
                              carrierCode=code,
@@ -83,8 +83,7 @@ def update_flight(client, flight):
                     else:
                         action_time = action_time.split('-')[0]
 
-                    fmt = '%Y-%m-%d %H:%M'
-                    action_datetime = datetime.datetime.strptime("{} {}".format(action_date, action_time), fmt)
+                    action_datetime = datetime.datetime.strptime("{} {}".format(action_date, action_time), payload_fmt)
 
                     if flight_status[action]['scheduledDate'] != action_datetime:
                         updated = True
@@ -109,6 +108,9 @@ def update_flight(client, flight):
 
 def needs_update(flight):
 
+    hours_to_monitor = 4
+
+
     # always update newerly incoming flights
     if not flights[flight]['departure']['scheduledDate']:
         return True
@@ -122,10 +124,25 @@ def needs_update(flight):
         delta = (departure_date - current_date).total_seconds() / 3600
 
         # Keep monitoring if we are 4 hours away from departure time
-        if delta <= 4:
+        if delta <= hours_to_monitor:
             return True
 
     return False
+
+def payload2str(payload):
+
+    return str({'user': payload['user'],
+                'departure': {'iataCode': payload['departure']['iataCode'],
+                              'scheduledDate': payload['departure']['scheduledDate'].strftime(payload_fmt),
+                              'terminal': payload['departure']['terminal'],
+                              'gate': payload['departure']['gate'],
+                              },
+                'arrival': {'iataCode': payload['arrival']['iataCode'],
+                              'scheduledDate': payload['arrival']['scheduledDate'].strftime(payload_fmt),
+                              'terminal': payload['arrival']['terminal'],
+                              'gate': payload['arrival']['gate'],
+                              }
+                })
 
 class FlightStatusMonitor(threading.Thread):
     def __init__(self, client):
@@ -142,9 +159,10 @@ class FlightStatusMonitor(threading.Thread):
 
                     if updated:
                         print('alerting...')
-                        self.mqtt_client.publish('flight/update', payload = str(flights[flight]))
+                        self.mqtt_client.publish('flight/update', payload = payload2str(flights[flight].copy()))
 
-            time.sleep(5)
+            # sleep for 5 minutes
+            time.sleep(60*5)
 
     def stop(self):
         self.running = False
